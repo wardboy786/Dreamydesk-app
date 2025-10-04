@@ -69,7 +69,7 @@ export const getBlogPostById = nextCache(
         return null;
     },
     ['blog-post-by-id'],
-    { revalidate: ONE_DAY_IN_SECONDS }
+    { revalidate: ONE_DAY_IN_SECONDS, tags: [`blog-post:${id}`] }
 );
 
 
@@ -83,6 +83,7 @@ export async function createBlogPost(postData: Omit<BlogPost, 'id' | 'createdAt'
     
     revalidatePath('/blog', 'layout');
     revalidatePath('/admin/blog', 'page');
+    revalidatePath(`/sitemap.xml`);
     const newDoc = await docRef.get();
     return convertDocToBlogPost(newDoc);
 }
@@ -94,12 +95,13 @@ export async function updateBlogPost(id: string, postData: Partial<Omit<BlogPost
         ...postData,
         updatedAt: admin.firestore.Timestamp.now(),
     });
-    const post = await getBlogPostById(id);
-    if(post) {
-      revalidatePath(`/blog/${post.slug}`, 'page');
-    }
+    
+    // Revalidate paths
+    revalidatePath(`/blog/${postData.slug}`, 'page');
     revalidatePath('/blog', 'layout');
     revalidatePath('/admin/blog', 'page');
+    revalidatePath(`/sitemap.xml`);
+    revalidatePath(`/admin/blog/${id}/edit`, 'page');
 }
 
 
@@ -108,4 +110,5 @@ export async function deleteBlogPost(id: string): Promise<void> {
     await docRef.delete();
     revalidatePath('/blog', 'layout');
     revalidatePath('/admin/blog', 'page');
+    revalidatePath(`/sitemap.xml`);
 }

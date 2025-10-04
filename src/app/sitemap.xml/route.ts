@@ -9,6 +9,9 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://dreamydesk.co.in';
 
 // Helper function to escape XML special characters
 const escapeXml = (unsafe: string) => {
+  if (typeof unsafe !== 'string') {
+    return '';
+  }
   return unsafe.replace(/[<>&"']/g, (c) => {
     switch (c) {
       case '<': return '&lt;';
@@ -27,23 +30,24 @@ function generateSiteMap(
     collections: CuratedCollection[], 
     blogPosts: BlogPost[]
 ) {
+  const now = new Date().toISOString();
   return `<?xml version="1.0" encoding="UTF-8"?>
    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
      <url>
        <loc>${escapeXml(siteUrl)}</loc>
-       <lastmod>${new Date().toISOString()}</lastmod>
+       <lastmod>${now}</lastmod>
        <changefreq>daily</changefreq>
        <priority>1.0</priority>
      </url>
      <url>
        <loc>${escapeXml(`${siteUrl}/blog`)}</loc>
-        <lastmod>${new Date().toISOString()}</lastmod>
+        <lastmod>${now}</lastmod>
        <changefreq>weekly</changefreq>
        <priority>0.8</priority>
      </url>
      ${wallpapers
        .map(({ id, updatedAt }) => {
-         const lastMod = updatedAt instanceof Date ? updatedAt.toISOString() : new Date().toISOString();
+         const lastMod = updatedAt instanceof Date ? updatedAt.toISOString() : now;
          return `
            <url>
                <loc>${escapeXml(`${siteUrl}/wallpaper/${id}`)}</loc>
@@ -59,7 +63,7 @@ function generateSiteMap(
          return `
            <url>
                <loc>${escapeXml(`${siteUrl}/category/${id}`)}</loc>
-                <lastmod>${new Date().toISOString()}</lastmod>
+                <lastmod>${now}</lastmod>
                <changefreq>weekly</changefreq>
                 <priority>0.6</priority>
            </url>
@@ -71,7 +75,7 @@ function generateSiteMap(
          return `
            <url>
                <loc>${escapeXml(`${siteUrl}/collections/${id}`)}</loc>
-                <lastmod>${new Date().toISOString()}</lastmod>
+                <lastmod>${now}</lastmod>
                <changefreq>weekly</changefreq>
                 <priority>0.6</priority>
            </url>
@@ -80,7 +84,7 @@ function generateSiteMap(
        .join('')}
        ${blogPosts
        .map(({ slug, updatedAt }) => {
-         const lastMod = updatedAt instanceof Date ? updatedAt.toISOString() : new Date().toISOString();
+         const lastMod = updatedAt instanceof Date ? updatedAt.toISOString() : now;
          return `
            <url>
                <loc>${escapeXml(`${siteUrl}/blog/${slug}`)}</loc>
