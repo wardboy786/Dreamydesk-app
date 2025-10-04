@@ -13,8 +13,7 @@ import { logCollectionDownload } from "@/services/analytics-service";
 import { Wallpaper } from "@/lib/types";
 import { useSearchParams } from "next/navigation";
 import { Capacitor } from '@capacitor/core';
-import { Filesystem, Directory } from '@capacitor/filesystem';
-import { Wallpaper as CapacitorWallpaper } from 'capacitor-plugin-wallpaper';
+import { Filesystem, Directory, PermissionState } from '@capacitor/filesystem';
 
 function getGuestId(): string {
     if (typeof window === 'undefined') return 'server_guest';
@@ -24,24 +23,6 @@ function getGuestId(): string {
         localStorage.setItem('guestId', guestId);
     }
     return guestId;
-}
-
-// New component for the "Set As" overlay
-function SetWallpaperOverlay({ onSet, onCancel }: { onSet: (mode: 'HOME' | 'LOCK' | 'BOTH') => void; onCancel: () => void; }) {
-    return (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center animate-in fade-in-0">
-            <div className="bg-card text-card-foreground rounded-lg p-6 w-[90vw] max-w-sm text-center space-y-4">
-                <h3 className="text-xl font-bold">Set as Wallpaper</h3>
-                <p className="text-muted-foreground">Where would you like to set this wallpaper?</p>
-                <div className="grid grid-cols-1 gap-2">
-                    <Button onClick={() => onSet('HOME')}><Home className="mr-2" /> Home Screen</Button>
-                    <Button onClick={() => onSet('LOCK')}><LockIcon className="mr-2" /> Lock Screen</Button>
-                    <Button onClick={() => onSet('BOTH')}><Smartphone className="mr-2" /> Both</Button>
-                </div>
-                <Button variant="ghost" onClick={onCancel}>Cancel</Button>
-            </div>
-        </div>
-    );
 }
 
 
@@ -54,8 +35,6 @@ function WallpaperActionsComponent({ wallpaper }: { wallpaper: Wallpaper }) {
     const [isLiked, setIsLiked] = useState(false);
     const [likeCount, setLikeCount] = useState(wallpaper.likes);
     const [isDownloading, setIsDownloading] = useState(false);
-    const [showSetAsOverlay, setShowSetAsOverlay] = useState(false);
-    const [downloadedFilePath, setDownloadedFilePath] = useState<string | null>(null);
     
     const isNative = Capacitor.isNativePlatform();
 
@@ -77,17 +56,31 @@ function WallpaperActionsComponent({ wallpaper }: { wallpaper: Wallpaper }) {
 
         try {
             const file = await downloadWallpaper(wallpaper.id);
-            const fileName = `${wallpaper.id}.${file.contentType.split('/')[1] || 'jpg'}`;
+            const fileName = `${wallpaper.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${wallpaper.id}.${file.contentType.split('/')[1] || 'jpg'}`;
 
             if (isNative) {
-                // Native platform: Save to filesystem and show "Set As" overlay
-                const result = await Filesystem.writeFile({
+                // Native platform: Save to the device's public Pictures directory.
+                
+                // First, check for permissions on Android.
+                if (Capacitor.getPlatform() === 'android') {
+                    let permStatus = await Filesystem.checkPermissions();
+                    if (permStatus.publicStorage !== 'granted') {
+                        permStatus = await Filesystem.requestPermissions();
+                    }
+                    if (permStatus.publicStorage !== 'granted') {
+                         toast({ variant: "destructive", title: "Permission Denied", description: "Cannot save wallpaper without storage permission." });
+                         setIsDownloading(false);
+                         return;
+                    }
+                }
+
+                await Filesystem.writeFile({
                     path: fileName,
                     data: file.base64,
-                    directory: Directory.Cache, // Use cache directory for temporary storage
+                    directory: Directory.Pictures, // Save to public Pictures album
+                    recursive: true
                 });
-                setDownloadedFilePath(result.uri);
-                setShowSetAsOverlay(true);
+                toast({ title: "Saved to Gallery!", description: `${wallpaper.title} has been saved to your photo gallery.` });
             } else {
                 // Web platform: Trigger browser download
                 const byteCharacters = atob(file.base64);
@@ -99,7 +92,7 @@ function WallpaperActionsComponent({ wallpaper }: { wallpaper: Wallpaper }) {
                 const a = document.createElement("a");
                 a.style.display = "none";
                 a.href = url;
-                a.download = `${wallpaper.title.replace(/ /g, "_")}.${file.contentType.split('/')[1] || 'jpg'}`;
+                a.download = fileName;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
@@ -120,33 +113,9 @@ function WallpaperActionsComponent({ wallpaper }: { wallpaper: Wallpaper }) {
             const errorMessage = error instanceof Error ? error.message : "Could not download wallpaper. Please try again.";
             toast({ variant: "destructive", title: "Download Failed", description: errorMessage });
         } finally {
-            if (!isNative) {
-              setIsDownloading(false);
-            }
-        }
-    }, [isDownloading, wallpaper, toast, user, fromCollection, isNative]);
-    
-    const handleSetWallpaper = async (mode: 'HOME' | 'LOCK' | 'BOTH') => {
-        if (!downloadedFilePath) {
-            toast({ variant: 'destructive', title: 'Error', description: 'File path not found.'});
-            return;
-        }
-        try {
-            toast({ title: 'Applying Wallpaper...', description: 'Please wait a moment.' });
-            await CapacitorWallpaper.set({
-                path: downloadedFilePath,
-                which: mode
-            });
-            toast({ title: 'Success!', description: 'Wallpaper has been set.' });
-        } catch (error: any) {
-             toast({ variant: 'destructive', title: 'Failed to Set', description: error.message || 'Could not set the wallpaper.' });
-        } finally {
-            setShowSetAsOverlay(false);
-            setDownloadedFilePath(null);
             setIsDownloading(false);
         }
-    }
-
+    }, [isDownloading, wallpaper, toast, user, fromCollection, isNative]);
 
     const handleLike = async () => {
         if (authLoading) return;
@@ -187,7 +156,6 @@ function WallpaperActionsComponent({ wallpaper }: { wallpaper: Wallpaper }) {
 
     return (
         <>
-            {showSetAsOverlay && <SetWallpaperOverlay onSet={handleSetWallpaper} onCancel={() => { setShowSetAsOverlay(false); setIsDownloading(false); }} />}
             <div className="absolute right-4 bottom-24 flex flex-col items-center gap-8 text-white">
                 <button onClick={handleLike} className="flex flex-col items-center gap-1.5 text-center" disabled={authLoading}>
                     <Heart className={cn("w-8 h-8 drop-shadow-lg transition-all", isLiked ? 'fill-red-500 text-red-500' : 'text-white')} />
