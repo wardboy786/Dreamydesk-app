@@ -14,7 +14,7 @@ import { Wallpaper } from "@/lib/types";
 import { useSearchParams } from "next/navigation";
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
-import { Wallpaper as CapacitorWallpaper } from 'capacitor-modern-wallpaper';
+import { Wallpaper as CapacitorWallpaper } from 'capacitor-plugin-wallpaper';
 
 function getGuestId(): string {
     if (typeof window === 'undefined') return 'server_guest';
@@ -133,7 +133,7 @@ function WallpaperActionsComponent({ wallpaper }: { wallpaper: Wallpaper }) {
         }
         try {
             toast({ title: 'Applying Wallpaper...', description: 'Please wait a moment.' });
-            await CapacitorWallpaper.setWallpaper({
+            await CapacitorWallpaper.set({
                 path: downloadedFilePath,
                 which: mode
             });
