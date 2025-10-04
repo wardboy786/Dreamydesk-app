@@ -1,0 +1,9 @@
+# Allow all user agents to crawl the site
+User-agent: *
+Allow: /
+
+# Disallow crawling of the admin panel
+Disallow: /admin/
+
+# Point crawlers to the sitemap
+Sitemap: https://dreamydesk.co.in/sitemap.xml

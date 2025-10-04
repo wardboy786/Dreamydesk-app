@@ -1,0 +1,30 @@
+
+[
+    {
+        "origin": [
+            "http://localhost",
+            "http://localhost:3000",
+            "http://localhost:5000",
+            "http://localhost:9002",
+            "https://6000-firebase-studio-1753941448530.cluster-iktsryn7xnhpexlu6255bftka4.cloudworkstations.dev",
+            "https://6000-firebase-dreamydesk-6-1756270484236.cluster-iktsryn7xnhpexlu6255bftka4.cloudworkstations.dev",
+            "https://dreamydesk-fab2b.web.app",
+            "https://dreamydesk-fab2b.firebaseapp.com",
+            "https://dreamydesk.co.in",
+            "dreamydesk.co.in",
+            "www.dreamydesk.co.in",
+            "https://dreamydesk-wallpapers.vercel.app"
+        ],
+        "method": [
+            "GET",
+            "POST",
+            "PUT",
+            "DELETE"
+        ],
+        "maxAgeSeconds": 3600,
+        "responseHeader": [
+            "Content-Type",
+            "Access-Control-Allow-Origin"
+        ]
+    }
+]

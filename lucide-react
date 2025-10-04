@@ -1,0 +1,294 @@
+
+"use client";
+
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Download, Heart, Share2, Loader2, Gem, X, HandCoins } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
+import { isWallpaperLiked, toggleWallpaperLike, addDownloadedWallpaper } from "@/services/user-service";
+import { updateWallpaperLikes, updateWallpaperDownloads } from "@/services/wallpaper-service";
+import { Wallpaper } from "@/lib/types";
+import Link from "next/link";
+import { Progress } from "../ui/progress";
+
+interface WallpaperActionsProps {
+    wallpaper: Wallpaper;
+}
+
+export default function WallpaperActions({ wallpaper }: WallpaperActionsProps) {
+    const { toast } = useToast();
+    const { user, loading: authLoading, isPremium } = useAuth();
+    
+    const [isLiked, setIsLiked] = useState(false);
+    const [likeCount, setLikeCount] = useState(wallpaper.likes);
+    const [isAdOpen, setIsAdOpen] = useState(false);
+    const [isFreeDownloadOverlayOpen, setIsFreeDownloadOverlayOpen] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
+    const [adCountdown, setAdCountdown] = useState(10);
+    const [freeCountdown, setFreeCountdown] = useState(5);
+    const [isAdCountdownRunning, setIsAdCountdownRunning] = useState(false);
+    const [isFreeCountdownRunning, setIsFreeCountdownRunning] = useState(false);
+
+
+    useEffect(() => {
+        if (user && wallpaper) {
+            isWallpaperLiked(user.uid, wallpaper.id).then(setIsLiked);
+        }
+    }, [user, wallpaper]);
+
+     useEffect(() => {
+        let adTimer: NodeJS.Timeout;
+        if (isAdCountdownRunning && adCountdown > 0) {
+            adTimer = setInterval(() => {
+                setAdCountdown(prev => prev - 1);
+            }, 1000);
+        } else if (adCountdown === 0) {
+            setIsAdCountdownRunning(false);
+        }
+        return () => clearInterval(adTimer);
+    }, [isAdCountdownRunning, adCountdown]);
+
+     useEffect(() => {
+        let freeTimer: NodeJS.Timeout;
+        if (isFreeCountdownRunning && freeCountdown > 0) {
+            freeTimer = setInterval(() => {
+                setFreeCountdown(prev => prev - 1);
+            }, 1000);
+        } else if (freeCountdown === 0) {
+            setIsFreeCountdownRunning(false);
+            // Automatically trigger download when countdown finishes
+            handleActualDownload();
+            setIsFreeDownloadOverlayOpen(false);
+        }
+        return () => clearInterval(freeTimer);
+    }, [isFreeCountdownRunning, freeCountdown]);
+    
+    useEffect(() => {
+        if (isAdOpen) {
+            const script = document.createElement('script');
+            script.src = "//jigsawharmony.com/033b77fc094734cddd318fc5b19a1738/invoke.js";
+            script.async = true;
+            script.setAttribute('data-cfasync', 'false');
+            script.id = 'adsterra-banner-script';
+            document.body.appendChild(script);
+
+            return () => {
+                const existingScript = document.getElementById('adsterra-banner-script');
+                if (existingScript) {
+                    document.body.removeChild(existingScript);
+                }
+            };
+        }
+    }, [isAdOpen]);
+
+
+    const handleLike = async () => {
+        if (!user) {
+            toast({
+                variant: "destructive",
+                title: "Not Logged In",
+                description: "You must be logged in to like a wallpaper.",
+            });
+            return;
+        }
+
+        const currentlyLiked = isLiked;
+        setIsLiked(!currentlyLiked);
+        setLikeCount(current => currentlyLiked ? current - 1 : current + 1);
+
+        try {
+            await toggleWallpaperLike(user.uid, wallpaper.id, !currentlyLiked);
+            await updateWallpaperLikes(wallpaper.id, !currentlyLiked);
+        } catch (error) {
+            console.error("Failed to update like status", error);
+            setIsLiked(currentlyLiked);
+            setLikeCount(current => currentlyLiked ? current + 1 : current + 1);
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "Could not update like status.",
+            });
+        }
+    };
+
+    const handleShare = () => {
+        navigator.clipboard.writeText(window.location.href);
+        toast({
+            title: "Link Copied!",
+            description: "Wallpaper link copied to your clipboard.",
+        });
+    };
+
+    const handleDownloadRequest = () => {
+        // Premium users get instant downloads for everything.
+        if (isPremium) {
+            handleActualDownload();
+            return;
+        }
+
+        // Non-premium user requesting a free wallpaper.
+        if (!wallpaper.premium) {
+            setFreeCountdown(5);
+            setIsFreeCountdownRunning(true);
+            setIsFreeDownloadOverlayOpen(true);
+            return;
+        }
+        
+        // Non-premium user requesting a premium wallpaper.
+        if (wallpaper.premium) {
+            if (!user) {
+                toast({
+                    variant: "destructive",
+                    title: "Login Required",
+                    description: "You must be logged in to unlock premium wallpapers.",
+                });
+                return;
+            }
+            // Logged-in, non-premium user sees the ad dialog for premium content.
+            setAdCountdown(10);
+            setIsAdCountdownRunning(true);
+            setIsAdOpen(true);
+        }
+    };
+
+    const handleCloseAdOverlayAndDownload = () => {
+        setIsAdOpen(false);
+        handleActualDownload();
+    }
+
+    const handleActualDownload = async () => {
+        setIsDownloading(true);
+        if(isAdOpen) setIsAdOpen(false);
+        if(isFreeDownloadOverlayOpen) setIsFreeDownloadOverlayOpen(false);
+        
+        try {
+            const response = await fetch(wallpaper.imageUrl);
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.style.display = "none";
+            a.href = url;
+            a.download = `${wallpaper.title.replace(/ /g, "_")}.jpg`;
+            document.body.appendChild(a);
+            
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            toast({
+                title: "Download Started!",
+                description: "Your wallpaper is downloading.",
+            });
+
+            await updateWallpaperDownloads(wallpaper.id);
+            if (user) {
+                await addDownloadedWallpaper(user.uid, wallpaper.id);
+            }
+
+        } catch (error) {
+            console.error("Download failed:", error);
+            toast({
+                variant: "destructive",
+                title: "Download Failed",
+                description: "Could not download the wallpaper. Please try again.",
+            });
+        } finally {
+            setIsDownloading(false);
+        }
+    };
+
+    return (
+        <>
+            <div className="flex gap-2">
+                <Button onClick={handleDownloadRequest} className="flex-1" disabled={isDownloading}>
+                    {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                    Download
+                </Button>
+                <Button variant="outline" onClick={handleLike} className="px-3" disabled={authLoading}>
+                    <Heart className={cn("h-5 w-5 transition-colors", isLiked ? 'fill-red-500 text-red-500' : 'text-foreground')} />
+                </Button>
+                <Button variant="outline" onClick={handleShare} className="px-3">
+                    <Share2 className="h-5 w-5" />
+                </Button>
+            </div>
+
+            {wallpaper.premium && !isPremium && (
+                <Card className="p-3 bg-secondary text-sm text-secondary-foreground">
+                    This is a <Badge variant="destructive">Premium</Badge> wallpaper. Unlock with an ad or upgrade.
+                </Card>
+            )}
+            
+            {/* Free Download Countdown Overlay */}
+            <AlertDialog open={isFreeDownloadOverlayOpen} onOpenChange={setIsFreeDownloadOverlayOpen}>
+                <AlertDialogContent className="max-w-md">
+                     <AlertDialogHeader>
+                        <AlertDialogTitle className="text-center font-headline text-2xl">Preparing your download...</AlertDialogTitle>
+                        <AlertDialogDescription className="text-center">Your download will begin automatically.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="py-4 space-y-4">
+                       <Progress value={(5 - freeCountdown) * 20} />
+                       <p className="text-center text-5xl font-bold font-mono">{freeCountdown}</p>
+                    </div>
+                    <Card className="bg-muted/50 p-4 text-center">
+                        <p className="text-sm text-muted-foreground mb-3">Creating beautiful 4K wallpapers and maintaining our servers costs money. A small contribution helps us keep DreamyDesk running and free for everyone!</p>
+                        <Button asChild>
+                            <a href="https://razorpay.me/@dreamydesk" target="_blank" rel="noopener noreferrer">
+                                <HandCoins className="mr-2 h-4 w-4" /> Support Us
+                            </a>
+                        </Button>
+                    </Card>
+                </AlertDialogContent>
+            </AlertDialog>
+
+
+            {/* Premium Download Ad Overlay */}
+            <AlertDialog open={isAdOpen}>
+                <AlertDialogContent className="p-0 border-0 w-full h-full max-w-none max-h-none rounded-none flex flex-col items-center justify-center bg-black/90 backdrop-blur-md">
+                     <AlertDialogHeader className="sr-only">
+                        <AlertDialogTitle>Advertisement</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Please watch this short ad to unlock your free download. Your download will begin after the ad is complete.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    
+                    {adCountdown > 0 ? (
+                        <div className="absolute top-4 right-4 text-white text-2xl font-bold bg-black/50 rounded-full w-12 h-12 flex items-center justify-center">
+                            {adCountdown}
+                        </div>
+                    ) : (
+                        <Button 
+                            variant="ghost" 
+                            className="absolute top-4 right-4 text-white hover:bg-white/20 hover:text-white rounded-full w-12 h-12"
+                            onClick={handleCloseAdOverlayAndDownload}
+                        >
+                            <X className="w-8 h-8"/>
+                        </Button>
+                    )}
+
+                    <div className="text-center text-white mb-8">
+                        <h2 className="text-2xl font-bold">Your download will begin shortly</h2>
+                        <p className="text-white/80">Please enjoy this ad while you wait</p>
+                        <p className="text-white/80 mt-1">Support us by clicking ads below</p>
+                    </div>
+
+                    <div id="container-033b77fc094734cddd318fc5b19a1738"></div>
+
+                    <div className="absolute bottom-8 text-center w-full px-8">
+                        <p className="text-white/50 text-sm mb-2">Tired of ads? Upgrade for an ad-free experience.</p>
+                         <Button asChild variant="secondary" className="bg-white/10 text-white hover:bg-white/20">
+                            <Link href="/menu/premium">
+                                <Gem className="mr-2 h-4 w-4"/> Upgrade to Premium
+                            </Link>
+                         </Button>
+                    </div>
+
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
+    );
+}

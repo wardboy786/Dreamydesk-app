@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            background-color: transparent;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        .ad-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            border-radius: 0.375rem; /* rounded-md */
+            font-size: 0.875rem; /* text-sm */
+            font-weight: 500; /* font-medium */
+            height: 2.5rem; /* h-10 */
+            padding-left: 1rem;
+            padding-right: 1rem;
+            width: 280px;
+            cursor: pointer;
+            border: none;
+            color: #f8fafc; /* primary-foreground */
+            background-color: #9333ea; /* primary (purple-600) */
+            transition: background-color 0.2s;
+        }
+        .ad-button:hover {
+            background-color: #7e22ce; /* primary/90 (purple-700) */
+        }
+        .ad-button:disabled {
+            pointer-events: none;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <button id="popunder-btn" class="ad-button">CLICK HERE TO DOWNLOAD</button>
+
+    <script type='text/javascript' src='//lemonpier.com/53/f1/0b/53f10b972eb98f6b0cb72c4b0eda618b.js'></script>
+
+    <script>
+        // This is a failsafe to ensure the script only runs inside the iframe
+        // and only when the button is clicked, although the ad network script
+        // might attach its own global listeners.
+        document.getElementById('popunder-btn').addEventListener('click', function() {
+            // The ad network script provided handles its own execution.
+            // This click is primarily for user interaction.
+            console.log("Pop-under button clicked.");
+        });
+    </script>
+</body>
+</html>
