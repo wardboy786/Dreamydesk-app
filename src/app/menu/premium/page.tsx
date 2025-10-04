@@ -12,7 +12,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { InAppPurchase, Product } from 'capacitor-plugin-in-app-purchase';
+import { InAppPurchase, Product } from '@capacitor-community/in-app-purchase';
 import { Capacitor } from '@capacitor/core';
 import {
   AlertDialog,

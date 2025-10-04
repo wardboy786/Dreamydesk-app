@@ -4,7 +4,7 @@
 // This file is being prepared for Google Play Billing integration via Capacitor.
 // All Razorpay-related code has been removed.
 
-import { InAppPurchase, Product } from 'capacitor-plugin-in-app-purchase';
+import { InAppPurchase, Product } from '@capacitor-community/in-app-purchase';
 import { db } from '@/lib/firebase-admin';
 
 // TODO: Define your product IDs from Google Play Console
