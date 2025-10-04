@@ -1,5 +1,12 @@
 
 
+// Add CdvPurchase to the global window object for TypeScript
+declare global {
+  interface Window {
+    CdvPurchase: CdvPurchase.Store;
+  }
+}
+
 export interface Wallpaper {
   id: string;
   title: string;

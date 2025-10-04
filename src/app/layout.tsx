@@ -2,6 +2,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import AppProviders from './app-providers'; // Import the new client component
+import Script from 'next/script';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://dreamydesk.co.in';
 
@@ -66,6 +67,8 @@ export default function RootLayout({
         {/* Preconnect to critical origins */}
         <link rel="preconnect" href="https://dreamydesk-fab2b.firebaseapp.com" />
         <link rel="preconnect" href="https://www.googleapis.com" />
+        {/* Add cordova.js script for native app functionality */}
+        <Script src="cordova.js" strategy="beforeInteractive" />
       </head>
       <body>
         <AppProviders>

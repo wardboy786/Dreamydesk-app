@@ -12,19 +12,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { InAppPurchase, Product } from '@capacitor-community/in-app-purchase';
 import { Capacitor } from '@capacitor/core';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { format } from 'date-fns';
 
 const freeFeatures = [
@@ -47,36 +35,61 @@ const MONTHLY_PLAN_ID = 'your_monthly_plan_id_here';
 export default function PremiumPage() {
     const { user, isPremium, premiumUntil, loading: authLoading } = useAuth();
     const { toast } = useToast();
-    const [product, setProduct] = useState<Product | null>(null);
+    const [product, setProduct] = useState<CdvPurchase.Product | null>(null);
     const [loadingProduct, setLoadingProduct] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
     const isNative = Capacitor.isNativePlatform();
 
     useEffect(() => {
-        if (!isNative) {
+        if (!isNative || !window.CdvPurchase) {
             setLoadingProduct(false);
             return;
         }
-        
-        async function loadProducts() {
+
+        const store = window.CdvPurchase.store;
+
+        async function initializeBilling() {
             try {
-                // Initialize the billing service
-                await InAppPurchase.initialize();
-                
-                // Get product details
-                const { products } = await InAppPurchase.getProducts({ productIds: [MONTHLY_PLAN_ID] });
-                if (products.length > 0) {
-                    setProduct(products[0]);
-                }
+                store.verbosity = store.LogLevel.DEBUG;
+                store.register({
+                    id: MONTHLY_PLAN_ID,
+                    type: store.ProductType.PAID_SUBSCRIPTION,
+                    platform: store.Platform.GOOGLE_PLAY,
+                });
+
+                store.when().productUpdated(p => {
+                    if (p.id === MONTHLY_PLAN_ID) {
+                        setProduct(p);
+                    }
+                });
+
+                store.when().approved(transaction => {
+                    // IMPORTANT: You should verify the receipt on your server here
+                    // before finishing the transaction.
+                    console.log("Transaction approved:", transaction);
+                    transaction.finish();
+                    toast({ title: 'Purchase Successful!', description: 'You are now a premium member.'});
+                    // The webhook from Google Play should update the user's premium status in Firestore.
+                });
+
+                store.when().receiptsReady(async () => {
+                    // Logic to handle existing active subscriptions on app start
+                    const hasActiveSubscription = store.owned(MONTHLY_PLAN_ID);
+                    if (hasActiveSubscription) {
+                        console.log('User has an active subscription.');
+                    }
+                });
+
+                await store.initialize([store.Platform.GOOGLE_PLAY]);
             } catch (error: any) {
-                console.error("Failed to load products", error);
-                toast({ variant: 'destructive', title: 'Error', description: 'Could not load subscription options.' });
+                console.error("Failed to initialize billing", error);
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not connect to the billing service.' });
             } finally {
                 setLoadingProduct(false);
             }
         }
-        
-        loadProducts();
+
+        initializeBilling();
 
     }, [isNative, toast]);
 
@@ -85,18 +98,15 @@ export default function PremiumPage() {
             toast({ variant: 'destructive', title: 'Not Logged In', description: 'You must be logged in to subscribe.'});
             return;
         }
-        if (!product) {
-            toast({ variant: 'destructive', title: 'Pricing Error', description: 'Could not find the subscription product. Please try again.'});
+        if (!product || !product.canPurchase) {
+            toast({ variant: 'destructive', title: 'Subscription Error', description: 'This subscription is currently unavailable. Please try again later.'});
             return;
         }
 
         setIsProcessing(true);
         try {
-            await InAppPurchase.purchase({ productId: product.productId });
-            // The actual entitlement should be granted via a server-side webhook from Google Play
-            // and a listener for purchase success on the client.
-            // For now, we show a success message.
-            toast({ title: 'Purchase Initiated', description: 'Follow the on-screen instructions to complete your purchase.' });
+            const store = window.CdvPurchase.store;
+            await store.order(product);
         } catch (error: any) {
              toast({ variant: 'destructive', title: 'Purchase Error', description: error.message || 'The purchase could not be completed.' });
         } finally {
@@ -175,7 +185,7 @@ export default function PremiumPage() {
                              <Skeleton className="h-10 w-32" />
                         ) : (
                             <p className="text-3xl font-bold">
-                                {product ? product.price : 'Not Available'}
+                                {product?.pricing?.price || 'Not Available'}
                             </p>
                         )}
                         <ul className="space-y-2">
@@ -193,9 +203,9 @@ export default function PremiumPage() {
                                 Manage Subscription
                             </Button>
                         ) : (
-                             <Button className="w-full text-lg py-6" onClick={handleUpgrade} disabled={loadingProduct || authLoading || isProcessing || !product || !isNative}>
+                             <Button className="w-full text-lg py-6" onClick={handleUpgrade} disabled={loadingProduct || authLoading || isProcessing || !product?.canPurchase || !isNative}>
                                 {isProcessing || loadingProduct ? <Loader2 className="mr-2 animate-spin" /> : <Gem className="mr-2" />}
-                                {isNative ? 'Upgrade Now' : 'Available in App'}
+                                {isNative ? (product?.canPurchase ? 'Upgrade Now' : 'Unavailable') : 'Available in App'}
                             </Button>
                         )}
                     </div>
