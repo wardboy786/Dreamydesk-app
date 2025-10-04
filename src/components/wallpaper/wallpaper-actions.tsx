@@ -14,7 +14,7 @@ import { Wallpaper } from "@/lib/types";
 import { useSearchParams } from "next/navigation";
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
-import { Wallpaper as CapacitorWallpaper } from 'capacitor-wallpaper';
+import { Wallpaper as CapacitorWallpaper } from 'capacitor-modern-wallpaper';
 
 function getGuestId(): string {
     if (typeof window === 'undefined') return 'server_guest';
@@ -188,7 +188,7 @@ function WallpaperActionsComponent({ wallpaper }: { wallpaper: Wallpaper }) {
     return (
         <>
             {showSetAsOverlay && <SetWallpaperOverlay onSet={handleSetWallpaper} onCancel={() => { setShowSetAsOverlay(false); setIsDownloading(false); }} />}
-            <div className="flex flex-col items-center gap-8 text-white">
+            <div className="absolute right-4 bottom-24 flex flex-col items-center gap-8 text-white">
                 <button onClick={handleLike} className="flex flex-col items-center gap-1.5 text-center" disabled={authLoading}>
                     <Heart className={cn("w-8 h-8 drop-shadow-lg transition-all", isLiked ? 'fill-red-500 text-red-500' : 'text-white')} />
                     <span className="text-xs font-bold drop-shadow-md">{Intl.NumberFormat('en-US', { notation: 'compact' }).format(likeCount || 0)}</span>
