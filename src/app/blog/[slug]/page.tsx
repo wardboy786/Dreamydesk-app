@@ -3,14 +3,10 @@ import { getBlogPostBySlug } from '@/services/blog.service';
 import { getWallpapersByIds } from '@/services/wallpaper.service';
 import type { Metadata, ResolvingMetadata } from 'next';
 import { notFound } from 'next/navigation';
-import OptimizedImage from '@/components/optimized-image';
-import Link from 'next/link';
-import { ArrowLeft, Calendar } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { AspectRatio } from '@/components/ui/aspect-ratio';
-import WallpaperGrid from '@/components/wallpaper-grid';
-import ReactMarkdown from 'react-markdown';
 import { Suspense } from 'react';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import BlogPostClientContent from './blog-post-client-content';
 
 type Props = {
@@ -34,7 +30,6 @@ export async function generateMetadata(
   const previousImages = (await parent).openGraph?.images || [];
   const postUrl = `${siteUrl}/blog/${post.slug}`;
  
-  // Ensure createdAt and updatedAt are Date objects before calling toISOString
   const createdAtDate = post.createdAt instanceof Date ? post.createdAt : new Date((post.createdAt as any)?._seconds * 1000 || post.createdAt);
   const updatedAtDate = post.updatedAt instanceof Date ? post.updatedAt : new Date((post.updatedAt as any)?._seconds * 1000 || post.updatedAt);
 
