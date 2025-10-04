@@ -4,12 +4,6 @@
 const nextConfig = {
   /* config options here */
   output: 'standalone',
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   // Expose the public VAPID key to the client-side code.
   env: {
     NEXT_PUBLIC_FCM_VAPID_KEY: process.env.NEXT_PUBLIC_FCM_VAPID_KEY,
@@ -60,6 +54,14 @@ const nextConfig = {
         source: '/menu/terms',
         destination: '/terms',
         permanent: true,
+      },
+    ]
+  },
+   async rewrites() {
+    return [
+      {
+        source: '/sitemap.xml',
+        destination: '/sitemap.xml/route',
       },
     ]
   },
