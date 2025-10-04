@@ -13,7 +13,8 @@ import { logCollectionDownload } from "@/services/analytics-service";
 import { Wallpaper } from "@/lib/types";
 import { useSearchParams } from "next/navigation";
 import { Capacitor } from '@capacitor/core';
-import { Filesystem, Directory, PermissionState } from '@capacitor/filesystem';
+import WallpaperPlugin from '@/services/wallpaper-plugin';
+
 
 function getGuestId(): string {
     if (typeof window === 'undefined') return 'server_guest';
@@ -52,37 +53,18 @@ function WallpaperActionsComponent({ wallpaper }: { wallpaper: Wallpaper }) {
         if (isDownloading) return;
 
         setIsDownloading(true);
-        toast({ title: "Preparing Download...", description: "Your wallpaper is being prepared." });
+        toast({ title: "Preparing Wallpaper...", description: "Your wallpaper is being prepared." });
 
         try {
             const file = await downloadWallpaper(wallpaper.id);
-            const fileName = `${wallpaper.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${wallpaper.id}.${file.contentType.split('/')[1] || 'jpg'}`;
-
-            if (isNative) {
-                // Native platform: Save to the device's public Pictures directory.
-                
-                // First, check for permissions on Android.
-                if (Capacitor.getPlatform() === 'android') {
-                    let permStatus = await Filesystem.checkPermissions();
-                    if (permStatus.publicStorage !== 'granted') {
-                        permStatus = await Filesystem.requestPermissions();
-                    }
-                    if (permStatus.publicStorage !== 'granted') {
-                         toast({ variant: "destructive", title: "Permission Denied", description: "Cannot save wallpaper without storage permission." });
-                         setIsDownloading(false);
-                         return;
-                    }
-                }
-
-                await Filesystem.writeFile({
-                    path: fileName,
-                    data: file.base64,
-                    directory: Directory.Pictures, // Save to public Pictures album
-                    recursive: true
-                });
-                toast({ title: "Saved to Gallery!", description: `${wallpaper.title} has been saved to your photo gallery.` });
+            
+            if (isNative && Capacitor.getPlatform() === 'android') {
+                // Native Android platform: Use the custom plugin to set the wallpaper directly.
+                await WallpaperPlugin.setWallpaper({ base64: file.base64 });
+                toast({ title: "Wallpaper Set!", description: `${wallpaper.title} has been set as your wallpaper.` });
             } else {
-                // Web platform: Trigger browser download
+                // Web platform or other native platforms: Trigger browser download
+                const fileName = `${wallpaper.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${wallpaper.id}.${file.contentType.split('/')[1] || 'jpg'}`;
                 const byteCharacters = atob(file.base64);
                 const byteNumbers = new Array(byteCharacters.length);
                 for (let i = 0; i < byteCharacters.length; i++) { byteNumbers[i] = byteCharacters.charCodeAt(i); }
@@ -100,7 +82,7 @@ function WallpaperActionsComponent({ wallpaper }: { wallpaper: Wallpaper }) {
                 toast({ title: "Download Started!", description: "Your wallpaper is now downloading." });
             }
             
-            // Log analytics for both platforms
+            // Log analytics for all platforms
             await updateWallpaperDownloads(wallpaper.id);
             const userId = user ? user.uid : getGuestId();
             await addDownloadedWallpaper(userId, wallpaper.id);
@@ -109,13 +91,14 @@ function WallpaperActionsComponent({ wallpaper }: { wallpaper: Wallpaper }) {
             }
 
         } catch (error) {
-            console.error("Download failed:", error);
-            const errorMessage = error instanceof Error ? error.message : "Could not download wallpaper. Please try again.";
-            toast({ variant: "destructive", title: "Download Failed", description: errorMessage });
+            console.error("Download or Set Wallpaper failed:", error);
+            const errorMessage = error instanceof Error ? error.message : "Could not complete the action. Please try again.";
+            toast({ variant: "destructive", title: "Action Failed", description: errorMessage });
         } finally {
             setIsDownloading(false);
         }
     }, [isDownloading, wallpaper, toast, user, fromCollection, isNative]);
+
 
     const handleLike = async () => {
         if (authLoading) return;
