@@ -62,16 +62,3 @@ export type AnalyticsData = {
   name: string;
   value: number;
 };
-
-export interface BlogPost {
-  id: string;
-  slug: string;
-  title: string;
-  content: string; // Markdown or HTML content
-  excerpt: string;
-  thumbnailUrl: string;
-  wallpaperIds: string[];
-  status: 'draft' | 'published';
-  createdAt: Date;
-  updatedAt: Date;
-}

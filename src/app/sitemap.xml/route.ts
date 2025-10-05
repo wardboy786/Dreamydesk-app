@@ -2,8 +2,7 @@
 import { getAllWallpapers } from '@/services/wallpaper.service'
 import { getAllCategories } from '@/services/category.service'
 import { getAllCollections } from '@/services/collection.service'
-import { getPublishedBlogPosts } from '@/services/blog.service'
-import { Wallpaper, Category, CuratedCollection, BlogPost } from '@/lib/types';
+import { Wallpaper, Category, CuratedCollection } from '@/lib/types';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://dreamydesk.co.in';
 
@@ -27,8 +26,7 @@ const escapeXml = (unsafe: string) => {
 function generateSiteMap(
     wallpapers: Wallpaper[], 
     categories: Category[], 
-    collections: CuratedCollection[], 
-    blogPosts: BlogPost[]
+    collections: CuratedCollection[]
 ) {
   const now = new Date().toISOString();
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -38,12 +36,6 @@ function generateSiteMap(
        <lastmod>${now}</lastmod>
        <changefreq>daily</changefreq>
        <priority>1.0</priority>
-     </url>
-     <url>
-       <loc>${escapeXml(`${siteUrl}/blog`)}</loc>
-        <lastmod>${now}</lastmod>
-       <changefreq>weekly</changefreq>
-       <priority>0.8</priority>
      </url>
      ${wallpapers
        .map(({ id, updatedAt }) => {
@@ -82,33 +74,19 @@ function generateSiteMap(
          `;
        })
        .join('')}
-       ${blogPosts
-       .map(({ slug, updatedAt }) => {
-         const lastMod = updatedAt instanceof Date ? updatedAt.toISOString() : now;
-         return `
-           <url>
-               <loc>${escapeXml(`${siteUrl}/blog/${slug}`)}</loc>
-                <lastmod>${lastMod}</lastmod>
-               <changefreq>weekly</changefreq>
-                <priority>0.9</priority>
-           </url>
-         `;
-       })
-       .join('')}
    </urlset>
  `;
 }
 
 export async function GET() {
     try {
-        const [wallpapers, categories, collections, blogPosts] = await Promise.all([
+        const [wallpapers, categories, collections] = await Promise.all([
             getAllWallpapers(),
             getAllCategories(),
             getAllCollections(),
-            getPublishedBlogPosts(),
         ]);
 
-        const sitemap = generateSiteMap(wallpapers, categories, collections, blogPosts);
+        const sitemap = generateSiteMap(wallpapers, categories, collections);
 
         return new Response(sitemap, {
             headers: {

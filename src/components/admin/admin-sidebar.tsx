@@ -86,14 +86,6 @@ export function AdminSidebar({ onLogout }: AdminSidebarProps) {
                       </Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
-                 <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/blog')} tooltip={{children: 'Blog'}}>
-                      <Link href="/admin/blog">
-                          <Newspaper />
-                          <span>Blog</span>
-                      </Link>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
                 <SidebarMenuItem>
                     <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/featured')} tooltip={{children: 'Featured'}}>
                       <Link href="/admin/featured">

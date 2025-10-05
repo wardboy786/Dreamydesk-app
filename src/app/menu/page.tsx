@@ -91,20 +91,6 @@ export default function MenuPage() {
                     </Link>
                 </li>
             )}
-             <li>
-                <Link href="/blog">
-                    <div className="flex items-center p-4 hover:bg-accent transition-colors">
-                        <div className="w-10 h-10 mr-4 flex items-center justify-center">
-                            <Newspaper className="w-6 h-6 text-primary" />
-                        </div>
-                        <div className="flex-1">
-                            <span className="font-medium">Blog</span>
-                            <p className="text-sm text-muted-foreground">News, updates, and stories</p>
-                        </div>
-                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                    </div>
-                </Link>
-            </li>
             <li>
                 <Link href="/menu/premium">
                     <div className="flex items-center p-4 hover:bg-accent transition-colors">
