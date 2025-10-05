@@ -3,7 +3,7 @@
 
 const nextConfig = {
   /* config options here */
-  output: 'standalone',
+  output: 'export',
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -28,6 +28,7 @@ const nextConfig = {
     ]
   },
   images: {
+    unoptimized: true,
     // We now whitelist the final CDN domain and the specific Firebase domain.
     remotePatterns: [
       {
