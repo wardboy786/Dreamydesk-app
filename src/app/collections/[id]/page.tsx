@@ -4,16 +4,12 @@ import CollectionPageComponent from './page-client';
 import { Suspense } from 'react';
 import { getCollectionById } from '@/services/collection.service';
 
-type Props = {
-  params: { id: string }
-}
-
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://dreamydesk.co.in';
 
 export const dynamic = 'force-dynamic'; // Ensures the page is rendered dynamically
 
 export async function generateMetadata(
-  { params }: Props,
+  { params }: { params: { id: string } },
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   const id = params.id
@@ -44,7 +40,7 @@ export async function generateMetadata(
   }
 }
 
-export default function CollectionPage({ params }: Props) {
+export default function CollectionPage({ params }: { params: { id: string } }) {
     return (
       <>
          <Suspense fallback={null}>

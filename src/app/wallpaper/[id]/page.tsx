@@ -7,16 +7,12 @@ import { notFound } from "next/navigation";
 import { Wallpaper } from "@/lib/types";
 import { getAllCategories } from "@/services/category.service";
 
-type Props = {
-  params: { id: string }
-}
-
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://dreamydesk.co.in';
 
 export const dynamic = 'force-dynamic';
 
 export async function generateMetadata(
-  { params }: Props,
+  { params }: { params: { id: string } },
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   const id = params.id
@@ -62,7 +58,7 @@ export async function generateMetadata(
   }
 }
 
-export default async function WallpaperPage({ params }: Props) {
+export default async function WallpaperPage({ params }: { params: { id: string } }) {
     // The server component is now extremely simple.
     // It does NOT fetch data for rendering.
     // It only passes the ID to the client component.

@@ -1,7 +1,7 @@
 
 "use client";
 
-import Image from "next/image";
+import OptimizedImage from "@/components/optimized-image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,7 @@ interface UploadImagePreviewProps {
     setResolution: (resolution: string) => void;
     status: 'idle' | 'uploading' | 'saving' | 'success' | 'error';
     uploadProgress: number;
+    disabled?: boolean;
 }
 
 export default function UploadImagePreview({
@@ -24,7 +25,8 @@ export default function UploadImagePreview({
     setPreview,
     setResolution,
     status,
-    uploadProgress
+    uploadProgress,
+    disabled = false,
 }: UploadImagePreviewProps) {
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,11 +55,11 @@ export default function UploadImagePreview({
             <CardContent className="space-y-4">
                 <div className="grid w-full max-w-sm items-center gap-1.5">
                     <Label htmlFor="picture">Select File</Label>
-                    <Input id="picture" type="file" onChange={handleFileChange} accept="image/*" />
+                    <Input id="picture" type="file" onChange={handleFileChange} accept="image/*" disabled={disabled} />
                 </div>
                 {preview && (
                     <div className="relative w-full aspect-[9/16] rounded-lg overflow-hidden border">
-                        <Image src={preview} alt="Image preview" fill className="object-cover" sizes="50vw" />
+                        <OptimizedImage src={preview} alt="Image preview" fill className="object-cover" sizes="50vw" />
                     </div>
                 )}
                 {status === 'uploading' && (

@@ -34,7 +34,7 @@ const nextConfig = {
         pathname: '/v0/b/**',
       },
        {
-        protocol: 'https',
+        protocol: 'https-prod.dreamydesk.workers.dev',
         hostname: 'cdn.dreamydesk.co.in',
       },
       {

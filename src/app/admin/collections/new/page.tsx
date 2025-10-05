@@ -190,8 +190,7 @@ export default function NewCollectionPage() {
                                                 src={wallpaper.imageUrl}
                                                 fill
                                                 sizes="10vw"
-                                                width={48}
-                                                height={64}
+                                                
                                             />
                                         </div>
                                         <div className="flex-1">
