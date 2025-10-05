@@ -9,14 +9,10 @@ import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import BlogPostClientContent from './blog-post-client-content';
 
-type Props = {
-  params: { slug: string }
-}
-
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://dreamydesk.co.in';
 
 export async function generateMetadata(
-  { params }: Props,
+  { params }: { params: { slug: string } },
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   const post = await getBlogPostBySlug(params.slug);
@@ -52,7 +48,7 @@ export async function generateMetadata(
 }
 
 
-export default async function BlogPostPage({ params }: Props) {
+export default async function BlogPostPage({ params }: { params: { slug: string } }) {
     const post = await getBlogPostBySlug(params.slug);
     
     if (!post || post.status !== 'published') {
